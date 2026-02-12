@@ -1,9 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk"
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-})
-
 export interface WorkoutPlanInput {
   goal: "bulk" | "cut" | "maintain" | "strength"
   experience: "beginner" | "intermediate" | "advanced"
@@ -113,6 +109,16 @@ Return the response as a valid JSON object with this exact structure:
 Return ONLY the JSON, no additional text.`
 
   try {
+    // Initialize Anthropic client with API key from environment
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (!apiKey) {
+      throw new Error("ANTHROPIC_API_KEY environment variable is not set")
+    }
+
+    const anthropic = new Anthropic({
+      apiKey: apiKey,
+    })
+
     const message = await anthropic.messages.create({
       model: "claude-3-5-sonnet-20241022",
       max_tokens: 4000,
