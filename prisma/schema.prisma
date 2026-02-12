@@ -1,0 +1,175 @@
+// This is your Prisma schema file
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication and profile
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  password      String    // Hashed password
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Profile information
+  age           Int?
+  weight        Float?    // in kg
+  height        Float?    // in cm
+  gender        String?   // "male" | "female" | "other"
+  experience    String?   // "beginner" | "intermediate" | "advanced"
+
+  // Fitness goals
+  goal          String?   // "bulk" | "cut" | "maintain" | "strength"
+  targetWeight  Float?
+
+  // Relationships
+  workouts      Workout[]
+  workoutPlans  WorkoutPlan[]
+  progressLogs  ProgressLog[]
+}
+
+// AI-generated workout plans
+model WorkoutPlan {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name          String
+  description   String?
+  goal          String    // "bulk" | "cut" | "maintain" | "strength"
+  daysPerWeek   Int
+  duration      Int       // weeks
+
+  // AI generation metadata
+  aiGenerated   Boolean   @default(true)
+  aiPrompt      String?   // The prompt used to generate this plan
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Plan structure (JSON)
+  planData      String    // JSON string containing the full plan structure
+
+  // Relationships
+  workouts      Workout[]
+
+  @@index([userId])
+}
+
+// Individual workout sessions
+model Workout {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  workoutPlanId String?
+  workoutPlan   WorkoutPlan? @relation(fields: [workoutPlanId], references: [id], onDelete: SetNull)
+
+  name          String
+  date          DateTime  @default(now())
+  duration      Int?      // minutes
+  notes         String?
+
+  completed     Boolean   @default(false)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relationships
+  exercises     WorkoutExercise[]
+
+  @@index([userId])
+  @@index([date])
+}
+
+// Exercises performed in a workout
+model WorkoutExercise {
+  id            String    @id @default(cuid())
+  workoutId     String
+  workout       Workout   @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+
+  exerciseId    String
+  exercise      Exercise  @relation(fields: [exerciseId], references: [id])
+
+  // Exercise performance
+  sets          Int
+  reps          Int       // target or actual reps
+  weight        Float?    // in kg
+  restTime      Int?      // seconds
+
+  // Notes
+  notes         String?
+  completed     Boolean   @default(false)
+
+  order         Int       // Order in the workout
+
+  createdAt     DateTime  @default(now())
+
+  @@index([workoutId])
+  @@index([exerciseId])
+}
+
+// Exercise library
+model Exercise {
+  id            String    @id @default(cuid())
+  name          String    @unique
+  description   String?
+
+  // Exercise classification
+  category      String    // "strength" | "cardio" | "flexibility"
+  muscleGroup   String    // "chest" | "back" | "legs" | "shoulders" | "arms" | "core" | "full-body"
+  equipment     String    // "barbell" | "dumbbell" | "machine" | "bodyweight" | "cable" | "other"
+
+  // Instructions
+  instructions  String?
+  videoUrl      String?
+  imageUrl      String?
+
+  difficulty    String?   // "beginner" | "intermediate" | "advanced"
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relationships
+  workoutExercises WorkoutExercise[]
+
+  @@index([muscleGroup])
+  @@index([equipment])
+}
+
+// Progress tracking over time
+model ProgressLog {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  date          DateTime  @default(now())
+
+  // Body metrics
+  weight        Float?    // kg
+  bodyFat       Float?    // percentage
+
+  // Measurements (cm)
+  chest         Float?
+  waist         Float?
+  hips          Float?
+  biceps        Float?
+  thighs        Float?
+
+  // Photos
+  photoUrl      String?
+
+  // Notes
+  notes         String?
+
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+  @@index([date])
+}
